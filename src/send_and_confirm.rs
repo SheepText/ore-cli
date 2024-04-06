@@ -124,7 +124,7 @@ impl Miner {
         let mut sigs = vec![];
         let mut attempts = 0;
         loop {
-            println!("Attempt: {:?}", attempts);
+            // println!("Attempt: {:?}", attempts);
             match client.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
                     sigs.push(sig);
@@ -138,7 +138,7 @@ impl Miner {
                         std::thread::sleep(Duration::from_millis(2000));
                         match client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
-                                println!("Confirms: {:?}", signature_statuses.value);
+                                // println!("Confirms: {:?}", signature_statuses.value);
                                 for signature_status in signature_statuses.value {
                                     if let Some(signature_status) = signature_status.as_ref() {
                                         if signature_status.confirmation_status.is_some() {
@@ -150,7 +150,7 @@ impl Miner {
                                                 TransactionConfirmationStatus::Processed => {}
                                                 TransactionConfirmationStatus::Confirmed
                                                 | TransactionConfirmationStatus::Finalized => {
-                                                    println!("Transaction landed!");
+                                                    println!("Transaction landed! {:?}", sig);
                                                     return Ok(sig);
                                                 }
                                             }
@@ -167,7 +167,7 @@ impl Miner {
                             }
                         }
                     }
-                    println!("Transaction did not land");
+                    // println!("Transaction did not land");
                 }
 
                 // Handle submit errors
