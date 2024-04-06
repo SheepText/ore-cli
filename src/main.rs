@@ -195,6 +195,10 @@ async fn main() {
         Some(default_keypair),
     ));
 
+    println!("Init Main...");
+    println!("Use RPC: {}", cluster);
+    println!("Fee: {}", args.priority_fee);
+
     // Execute user command.
     match args.command {
         Commands::Balance(args) => {
