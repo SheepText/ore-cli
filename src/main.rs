@@ -32,9 +32,9 @@ struct Miner {
 struct Args {
     #[arg(
         long,
-        value_name = "NETWORK_URL",
+        value_name = "NETWORK_URL_SEND",
         help = "Network address of your RPC provider, for sendTx",
-        global = true
+        default_value = "https://api.mainnet-beta.solana.com"
     )]
     send_rpc: String,
 
@@ -125,6 +125,7 @@ struct RewardsArgs {
 #[derive(Parser, Debug)]
 struct MineArgs {
     #[arg(
+        long,
         long,
         short,
         value_name = "THREAD_COUNT",

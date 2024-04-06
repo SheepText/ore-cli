@@ -80,7 +80,7 @@ impl Miner {
         if dynamic_cus {
             let mut sim_attempts = 0;
             'simulate: loop {
-                let sim_res = client
+                let sim_res = query_client
                     .simulate_transaction_with_config(
                         &tx,
                         RpcSimulateTransactionConfig {
