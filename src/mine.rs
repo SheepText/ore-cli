@@ -41,6 +41,10 @@ impl Miner {
             let reward_rate =
                 (treasury.reward_rate as f64) / (10f64.powf(ore::TOKEN_DECIMALS as f64));
             stdout.write_all(b"\x1b[2J\x1b[3J\x1b[H").ok();
+            println!("Use Send RPC: {}", self.cluster.clone());
+            println!("Use Query RPC: {}", self.send_cluster.clone());
+            println!("Fee: {}", self.priority_fee);
+            println!("Threads: {}", threads);
             println!("Balance: {} ORE", balance);
             println!("Claimable: {} ORE", rewards);
             println!("Reward rate: {} ORE", reward_rate);
@@ -67,7 +71,7 @@ impl Miner {
                         let cu_price_ix =
                             ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
                         let reset_ix = ore::instruction::reset(signer.pubkey());
-                        self.send_and_confirm(&[cu_limit_ix, cu_price_ix, reset_ix], false, true)
+                        self.send_and_confirm(&[cu_limit_ix, cu_price_ix, reset_ix], true)
                             .await
                             .ok();
                     }
@@ -87,7 +91,7 @@ impl Miner {
                     nonce,
                 );
                 match self
-                    .send_and_confirm(&[cu_limit_ix, cu_price_ix, ix_mine], false, false)
+                    .send_and_confirm(&[cu_limit_ix, cu_price_ix, ix_mine], false)
                     .await
                 {
                     Ok(sig) => {

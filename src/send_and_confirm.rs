@@ -33,11 +33,14 @@ impl Miner {
     ) -> ClientResult<Signature> {
         let mut stdout = stdout();
         let signer = self.signer();
-        let client =
+        let send_client =
+            RpcClient::new_with_commitment(self.send_cluster.clone(), CommitmentConfig::confirmed());
+
+        let query_client =
             RpcClient::new_with_commitment(self.cluster.clone(), CommitmentConfig::confirmed());
 
         // Return error if balance is zero
-        let balance = client
+        let balance = query_client
             .get_balance_with_commitment(&signer.pubkey(), CommitmentConfig::confirmed())
             .await
             .unwrap();
@@ -49,10 +52,21 @@ impl Miner {
         }
 
         // Build tx
-        let (mut hash, mut slot) = client
-            .get_latest_blockhash_with_commitment(CommitmentConfig::confirmed())
+        let (hash, slot) = match query_client
+            .get_latest_blockhash_with_commitment(CommitmentConfig::finalized())
             .await
-            .unwrap();
+        {
+            Ok((hash, slot)) => (hash, slot),
+            Err(err) => {
+                return Err(ClientError {
+                    request: None,
+                    kind: ClientErrorKind::Custom(format!(
+                        "Failed to get latest blockhash: {}",
+                        err
+                    )),
+                });
+            }
+        };
         let mut send_cfg = RpcSendTransactionConfig {
             skip_preflight: true,
             preflight_commitment: Some(CommitmentLevel::Confirmed),
@@ -125,18 +139,19 @@ impl Miner {
         let mut attempts = 0;
         loop {
             // println!("Attempt: {:?}", attempts);
-            match client.send_transaction_with_config(&tx, send_cfg).await {
+            // println!(".");
+            match send_client.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
                     sigs.push(sig);
-                    println!("{:?}", sig);
+                    // println!("{:?}", sig);
 
                     // Confirm tx
                     if skip_confirm {
                         return Ok(sig);
                     }
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(2000));
-                        match client.get_signature_statuses(&sigs).await {
+                        std::thread::sleep(Duration::from_millis(100));
+                        match query_client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
                                 // println!("Confirms: {:?}", signature_statuses.value);
                                 for signature_status in signature_statuses.value {
@@ -173,16 +188,33 @@ impl Miner {
                 // Handle submit errors
                 Err(err) => {
                     println!("Error {:?}", err);
+
+                      // No need to retry here on explicit error. it'll fail again.
+                    return Err(ClientError {
+                        request: None,
+                        kind: ClientErrorKind::Custom(format!("Failed to send tx: {:?}", err)),
+                    });
                 }
             }
             stdout.flush().ok();
 
             // Retry
-            std::thread::sleep(Duration::from_millis(2000));
-            (hash, slot) = client
-                .get_latest_blockhash_with_commitment(CommitmentConfig::confirmed())
+            std::thread::sleep(Duration::from_millis(200));
+            let (hash, slot) = match query_client
+                .get_latest_blockhash_with_commitment(CommitmentConfig::finalized())
                 .await
-                .unwrap();
+            {
+                Ok((hash, slot)) => (hash, slot),
+                Err(err) => {
+                    return Err(ClientError {
+                        request: None,
+                        kind: ClientErrorKind::Custom(format!(
+                            "Failed to get latest blockhash: {:?}",
+                            err
+                        )),
+                    });
+                }
+            };
             send_cfg = RpcSendTransactionConfig {
                 skip_preflight: true,
                 preflight_commitment: Some(CommitmentLevel::Confirmed),
