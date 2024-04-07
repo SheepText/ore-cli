@@ -55,7 +55,7 @@ impl Miner {
         ];
             
         // Start mining loop
-        'mining_loop:loop {
+       loop {
             // Fetch account state
             let balance = self.get_ore_display_balance().await;
             let treasury = get_treasury(self.send_cluster.clone()).await;
@@ -84,7 +84,7 @@ impl Miner {
             // Submit mine tx.
             // Use busses randomly so on each epoch, transactions don't pile on the same busses
             println!("\n\nSubmitting hash for validation...");
-            loop {
+            'mining_loop:loop {
                 // Reset epoch, if needed
                 let treasury = get_treasury(self.cluster.clone()).await;
                 let clock = get_clock_account(self.cluster.clone()).await;
