@@ -1,5 +1,5 @@
 use std::{
-    io::{stdout, Write},
+    // io::{stdout, Write},
     time::Duration,
 };
 
@@ -19,10 +19,10 @@ use solana_transaction_status::{TransactionConfirmationStatus, UiTransactionEnco
 
 use crate::Miner;
 
-const RPC_RETRIES: usize = 0;
+const RPC_RETRIES: usize = 4;
 const SIMULATION_RETRIES: usize = 4;
 const GATEWAY_RETRIES: usize = 4;
-const CONFIRM_RETRIES: usize = 4;
+const CONFIRM_RETRIES: usize = 2;
 
 impl Miner {
     pub async fn send_and_confirm(
@@ -31,7 +31,7 @@ impl Miner {
         dynamic_cus: bool,
         skip_confirm: bool,
     ) -> ClientResult<Signature> {
-        let mut stdout = stdout();
+        // let mut stdout = stdout();
         let signer = self.signer();
         let send_client =
             RpcClient::new_with_commitment(self.send_cluster.clone(), CommitmentConfig::confirmed());
@@ -142,15 +142,16 @@ impl Miner {
             // println!(".");
             match send_client.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
+
                     sigs.push(sig);
-                    // println!("{:?}", sig);
+                    println!("{:?}", sig);
 
                     // Confirm tx
                     if skip_confirm {
                         return Ok(sig);
                     }
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(100));
+                        std::thread::sleep(Duration::from_millis(2000));
                         match query_client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
                                 // println!("Confirms: {:?}", signature_statuses.value);
@@ -196,10 +197,10 @@ impl Miner {
                     });
                 }
             }
-            stdout.flush().ok();
+            // stdout.flush().ok();
 
             // Retry
-            std::thread::sleep(Duration::from_millis(200));
+            std::thread::sleep(Duration::from_millis(1000));
             let (hash, slot) = match query_client
                 .get_latest_blockhash_with_commitment(CommitmentConfig::finalized())
                 .await
