@@ -55,7 +55,7 @@ impl Miner {
         ];
             
         // Start mining loop
-       loop {
+        'mining_loop:loop {
             // Fetch account state
             let balance = self.get_ore_display_balance().await;
             let treasury = get_treasury(self.send_cluster.clone()).await;
@@ -69,6 +69,7 @@ impl Miner {
             println!("Use Send RPC: {}", self.send_cluster.clone());
             println!("Use Query RPC: {}", self.cluster.clone());
             println!("Fee: {}", self.priority_fee);
+            println!("Enable JitoTip: {}", self.jito_enable);
             println!("JitoTip Fee: {}", self.jito_fee);
             println!("Threads: {}", threads);
             println!("Balance: {} ORE", balance);
@@ -84,15 +85,16 @@ impl Miner {
             // Submit mine tx.
             // Use busses randomly so on each epoch, transactions don't pile on the same busses
             println!("\n\nSubmitting hash for validation...");
-            'mining_loop:loop {
+            let mut need_reset = false;
+            loop {
                 // Reset epoch, if needed
                 let treasury = get_treasury(self.cluster.clone()).await;
                 let clock = get_clock_account(self.cluster.clone()).await;
                 let threshold = treasury.last_reset_at.saturating_add(EPOCH_DURATION);
-                if clock.unix_timestamp.ge(&threshold) {
+                if clock.unix_timestamp.ge(&threshold) || need_reset {
                     // There are a lot of miners right now, so randomly select into submitting tx
-                    if rng.gen_range(0..RESET_ODDS).eq(&0) {
-                        println!("Sending epoch reset transaction...");
+                    if rng.gen_range(0..RESET_ODDS).eq(&0) || need_reset{
+                        println!("Sending epoch reset transaction... or Need Reset....0x3");
                         let cu_limit_ix =
                             ComputeBudgetInstruction::set_compute_unit_limit(CU_LIMIT_RESET);
                         let cu_price_ix =
@@ -101,6 +103,7 @@ impl Miner {
                         self.send_and_confirm(&[cu_limit_ix, cu_price_ix, reset_ix], false,true)
                             .await
                             .ok();
+                        need_reset = true;
                     }
                 }
 
@@ -116,13 +119,14 @@ impl Miner {
                 let mut rng = rand::thread_rng();
                 let random_index = rng.gen_range(0..jito_addresses.len());
                 let selected_address = jito_addresses[random_index];
-
+                
                 let jito_tips = transfer(
                         &signer.pubkey(), //DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt
                         &pubkey::Pubkey::from_str(selected_address)
                             .unwrap(),
                     self.jito_fee,
                 );
+                
 
                 let ix_mine = ore::instruction::mine(
                     signer.pubkey(),
@@ -130,8 +134,14 @@ impl Miner {
                     next_hash.into(),
                     nonce,
                 );
+
+                let mut ixs: Vec<_> = vec![cu_limit_ix, cu_price_ix, ix_mine];
+                if self.jito_enable {
+                    ixs.insert(0, jito_tips);
+                }
+                
                 match self
-                    .send_and_confirm(&[jito_tips, cu_limit_ix, cu_price_ix, ix_mine], false,false)
+                    .send_and_confirm(&ixs, false,false)
                     .await
                 {
                     Ok(sig) => {
@@ -142,7 +152,11 @@ impl Miner {
                     Err(_err) => {
                         println!("send_and_confirm Error: {}", _err.to_string());
 
+
+
+
                         if Miner::should_break_loop(&_err.to_string()) {
+                            // need_reset = true;
                             continue 'mining_loop;
                         }
                     }
