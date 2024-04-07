@@ -1,6 +1,7 @@
 use std::{
     io::{stdout, Write},
     sync::{atomic::AtomicBool, Arc, Mutex},
+    fs::OpenOptions
 };
 
 use ore::{self, state::Bus, BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION};
@@ -29,21 +30,33 @@ impl Miner {
         self.register().await;
         let mut stdout = stdout();
         let mut rng = rand::thread_rng();
+        stdout.write_all(b"\x1b[2J\x1b[3J\x1b[H").ok();
 
+        let mut file = OpenOptions::new()
+            .append(true) 
+            .create(true) 
+            .open("output.txt") 
+            .expect("Failed to open file in append mode");
         // Start mining loop
         loop {
             // Fetch account state
             let balance = self.get_ore_display_balance().await;
-            let treasury = get_treasury(self.cluster.clone()).await;
-            let proof = get_proof(self.cluster.clone(), signer.pubkey()).await;
+            let treasury = get_treasury(self.send_cluster.clone()).await;
+            let proof = get_proof(self.send_cluster.clone(), signer.pubkey()).await;
             let rewards =
                 (proof.claimable_rewards as f64) / (10f64.powf(ore::TOKEN_DECIMALS as f64));
             let reward_rate =
                 (treasury.reward_rate as f64) / (10f64.powf(ore::TOKEN_DECIMALS as f64));
             stdout.write_all(b"\x1b[2J\x1b[3J\x1b[H").ok();
+            println!("================================");
+            println!("Use Send RPC: {}", self.send_cluster.clone());
+            println!("Use Query RPC: {}", self.cluster.clone());
+            println!("Fee: {}", self.priority_fee);
+            println!("Threads: {}", threads);
             println!("Balance: {} ORE", balance);
             println!("Claimable: {} ORE", rewards);
             println!("Reward rate: {} ORE", reward_rate);
+            println!("================================");
 
             // Escape sequence that clears the screen and the scrollback buffer
             println!("\nMining for a valid hash...");
@@ -67,7 +80,7 @@ impl Miner {
                         let cu_price_ix =
                             ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
                         let reset_ix = ore::instruction::reset(signer.pubkey());
-                        self.send_and_confirm(&[cu_limit_ix, cu_price_ix, reset_ix], false, true)
+                        self.send_and_confirm(&[cu_limit_ix, cu_price_ix, reset_ix], false,true)
                             .await
                             .ok();
                     }
@@ -87,11 +100,12 @@ impl Miner {
                     nonce,
                 );
                 match self
-                    .send_and_confirm(&[cu_limit_ix, cu_price_ix, ix_mine], false, false)
+                    .send_and_confirm(&[cu_limit_ix, cu_price_ix, ix_mine], false,false)
                     .await
                 {
                     Ok(sig) => {
-                        println!("Success: {}", sig);
+                        println!("Skip confirm Success: {}", sig);
+                        writeln!(file, "{}", sig.to_string()).expect("Failed to write to file");
                         break;
                     }
                     Err(_err) => {

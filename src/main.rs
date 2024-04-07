@@ -24,6 +24,7 @@ struct Miner {
     pub keypair_filepath: Option<String>,
     pub priority_fee: u64,
     pub cluster: String,
+    pub send_cluster:String,
 }
 
 #[derive(Parser, Debug)]
@@ -31,26 +32,24 @@ struct Miner {
 struct Args {
     #[arg(
         long,
-        value_name = "NETWORK_URL",
-        help = "Network address of your RPC provider",
-        global = true
+        value_name = "NETWORK_URL_SEND",
+        help = "Network address of your RPC provider, for sendTx",
+        default_value = "https://api.mainnet-beta.solana.com"
     )]
-    rpc: Option<String>,
+    send_rpc: String,
 
-    #[clap(
-        global = true,
-        short = 'C',
-        long = "config",
-        id = "PATH",
-        help = "Filepath to config file."
+    #[arg(
+        long,
+        value_name = "NETWORK_URL",
+        help = "Network address of your RPC provider, for query",
+        default_value = "https://api.mainnet-beta.solana.com"
     )]
-    pub config_file: Option<String>,
+    rpc: String,
 
     #[arg(
         long,
         value_name = "KEYPAIR_FILEPATH",
-        help = "Filepath to keypair to use",
-        global = true
+        help = "Filepath to keypair to use"
     )]
     keypair: Option<String>,
 
@@ -127,6 +126,7 @@ struct RewardsArgs {
 struct MineArgs {
     #[arg(
         long,
+        long,
         short,
         value_name = "THREAD_COUNT",
         help = "The number of threads to dedicate to mining",
@@ -171,32 +171,19 @@ struct UpdateDifficultyArgs {}
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
-
-    // Load the config file from custom path, the default path, or use default config values
-    let cli_config = if let Some(config_file) = &args.config_file {
-        solana_cli_config::Config::load(config_file).unwrap_or_else(|_| {
-            eprintln!("error: Could not find config file `{}`", config_file);
-            std::process::exit(1);
-        })
-    } else if let Some(config_file) = &*solana_cli_config::CONFIG_FILE {
-        solana_cli_config::Config::load(config_file).unwrap_or_default()
-    } else {
-        solana_cli_config::Config::default()
-    };
-
     // Initialize miner.
-    let cluster = args.rpc.unwrap_or(cli_config.json_rpc_url);
-    let default_keypair = args.keypair.unwrap_or(cli_config.keypair_path);
-
+    let args = Args::parse();
+    let cluster = args.rpc;
+    let send_cluster = args.send_rpc;
     let miner = Arc::new(Miner::new(
-        cluster.clone(),
-        args.priority_fee,
-        Some(default_keypair),
-    ));
-
+        send_cluster.clone(), 
+        cluster.clone(), 
+        args.priority_fee, 
+        args.keypair)
+    );
     println!("Init Main...");
-    println!("Use RPC: {}", cluster);
+    println!("Use Send RPC: {}", send_cluster);
+    println!("Use Query RPC: {}", cluster);
     println!("Fee: {}", args.priority_fee);
 
     // Execute user command.
@@ -235,11 +222,12 @@ async fn main() {
 }
 
 impl Miner {
-    pub fn new(cluster: String, priority_fee: u64, keypair_filepath: Option<String>) -> Self {
+    pub fn new(send_cluster: String, cluster: String, priority_fee: u64, keypair_filepath: Option<String>) -> Self {
         Self {
             keypair_filepath,
             priority_fee,
             cluster,
+            send_cluster,
         }
     }
 
