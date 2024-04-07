@@ -55,6 +55,7 @@ impl Miner {
             println!("Use Send RPC: {}", self.send_cluster.clone());
             println!("Use Query RPC: {}", self.cluster.clone());
             println!("Fee: {}", self.priority_fee);
+            println!("JitoTip Fee: {}", self.jito_fee);
             println!("Threads: {}", threads);
             println!("Balance: {} ORE", balance);
             println!("Claimable: {} ORE", rewards);
