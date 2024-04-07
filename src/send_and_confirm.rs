@@ -190,11 +190,17 @@ impl Miner {
                 Err(err) => {
                     println!("Submit Error {:?}", err);
 
+                    // if Miner::should_break_loop(&err.to_string()) {
+                    //     return Err(ClientError {
+                    //         request: None,
+                    //         kind: ClientErrorKind::Custom("custom program error: 0x3".into()),
+                    //     });
+                    // }
                     // No need to retry here on explicit error. it'll fail again.
-                    // return Err(ClientError {
-                    //     request: None,
-                    //     kind: ClientErrorKind::Custom(format!("Failed to send tx: {:?}", err)),
-                    // });
+                    return Err(ClientError {
+                        request: None,
+                        kind: ClientErrorKind::Custom("custom program error: 0x3".into()),
+                    });
                 }
             }
             // stdout.flush().ok();

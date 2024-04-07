@@ -55,7 +55,7 @@ impl Miner {
         ];
             
         // Start mining loop
-        loop {
+        'mining_loop:loop {
             // Fetch account state
             let balance = self.get_ore_display_balance().await;
             let treasury = get_treasury(self.send_cluster.clone()).await;
@@ -141,9 +141,15 @@ impl Miner {
                     }
                     Err(_err) => {
                         println!("send_and_confirm Error: {}", _err.to_string());
+
+                        if Miner::should_break_loop(&_err.to_string()) {
+                            continue 'mining_loop;
+                        }
                     }
                 }
             }
+
+
         }
     }
 
@@ -262,5 +268,9 @@ impl Miner {
             }
             Err(_) => "Err".to_string(),
         }
+    }
+
+    pub fn should_break_loop(err_msg: &str) -> bool {
+        err_msg.contains("custom program error: 0x3")
     }
 }
