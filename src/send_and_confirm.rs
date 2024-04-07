@@ -179,7 +179,7 @@ impl Miner {
 
                             // Handle confirmation errors
                             Err(err) => {
-                                println!("Error: {:?}", err);
+                                println!("confirmation Error: {:?}", err);
                             }
                         }
                     }
@@ -188,13 +188,13 @@ impl Miner {
 
                 // Handle submit errors
                 Err(err) => {
-                    println!("Error {:?}", err);
+                    println!("Submit Error {:?}", err);
 
-                      // No need to retry here on explicit error. it'll fail again.
-                    return Err(ClientError {
-                        request: None,
-                        kind: ClientErrorKind::Custom(format!("Failed to send tx: {:?}", err)),
-                    });
+                    // No need to retry here on explicit error. it'll fail again.
+                    // return Err(ClientError {
+                    //     request: None,
+                    //     kind: ClientErrorKind::Custom(format!("Failed to send tx: {:?}", err)),
+                    // });
                 }
             }
             // stdout.flush().ok();

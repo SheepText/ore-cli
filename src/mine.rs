@@ -43,7 +43,7 @@ impl Miner {
             .expect("Failed to open file in append mode");
 
         
-        let JitoAddresses = vec![
+        let jito_addresses = vec![
             "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",
             "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
             "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY",
@@ -114,8 +114,8 @@ impl Miner {
                 
                 // jito Tips
                 let mut rng = rand::thread_rng();
-                let random_index = rng.gen_range(0..JitoAddresses.len());
-                let selected_address = JitoAddresses[random_index];
+                let random_index = rng.gen_range(0..jito_addresses.len());
+                let selected_address = jito_addresses[random_index];
 
                 let jito_tips = transfer(
                         &signer.pubkey(), //DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt
@@ -140,7 +140,7 @@ impl Miner {
                         break;
                     }
                     Err(_err) => {
-                        println!("Error: {}", _err.to_string());
+                        println!("send_and_confirm Error: {}", _err.to_string());
                     }
                 }
             }
