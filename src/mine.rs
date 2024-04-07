@@ -102,7 +102,7 @@ impl Miner {
                         &signer.pubkey(),
                         &pubkey::Pubkey::from_str("DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh")
                             .unwrap(),
-                    1000000,
+                    50000,
                 );
 
                 let ix_mine = ore::instruction::mine(
