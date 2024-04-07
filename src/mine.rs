@@ -99,10 +99,10 @@ impl Miner {
                 
                 // jito Tips
                 let jito_tips = transfer(
-                        &signer.pubkey(),
+                        &signer.pubkey(), //DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt
                         &pubkey::Pubkey::from_str("DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh")
                             .unwrap(),
-                    50000,
+                    self.jito_fee,
                 );
 
                 let ix_mine = ore::instruction::mine(
