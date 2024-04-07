@@ -19,9 +19,9 @@ use solana_transaction_status::{TransactionConfirmationStatus, UiTransactionEnco
 
 use crate::Miner;
 
-const RPC_RETRIES: usize = 4;
+const RPC_RETRIES: usize = 1;
 const SIMULATION_RETRIES: usize = 4;
-const GATEWAY_RETRIES: usize = 4;
+const GATEWAY_RETRIES: usize = 1;
 const CONFIRM_RETRIES: usize = 2;
 
 impl Miner {
@@ -68,7 +68,7 @@ impl Miner {
             }
         };
         let mut send_cfg = RpcSendTransactionConfig {
-            skip_preflight: true,
+            skip_preflight: false,
             preflight_commitment: Some(CommitmentLevel::Confirmed),
             encoding: Some(UiTransactionEncoding::Base64),
             max_retries: Some(RPC_RETRIES),
@@ -151,7 +151,7 @@ impl Miner {
                         return Ok(sig);
                     }
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(2000));
+                        std::thread::sleep(Duration::from_millis(1000));
                         match query_client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
                                 // println!("Confirms: {:?}", signature_statuses.value);

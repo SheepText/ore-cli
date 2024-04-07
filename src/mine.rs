@@ -1,17 +1,20 @@
 use std::{
     io::{stdout, Write},
     sync::{atomic::AtomicBool, Arc, Mutex},
-    fs::OpenOptions
+    fs::OpenOptions,
+    str::FromStr
 };
 
 use ore::{self, state::Bus, BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION};
 use rand::Rng;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_program::pubkey;
 use solana_sdk::{
     commitment_config::CommitmentConfig,
     compute_budget::ComputeBudgetInstruction,
     keccak::{hashv, Hash as KeccakHash},
     signature::Signer,
+    system_instruction::transfer,
 };
 
 use crate::{
@@ -93,6 +96,15 @@ impl Miner {
                 let cu_limit_ix = ComputeBudgetInstruction::set_compute_unit_limit(CU_LIMIT_MINE);
                 let cu_price_ix =
                     ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
+                
+                // jito Tips
+                let jito_tips = transfer(
+                        &signer.pubkey(),
+                        &pubkey::Pubkey::from_str("DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh")
+                            .unwrap(),
+                    1000000,
+                );
+
                 let ix_mine = ore::instruction::mine(
                     signer.pubkey(),
                     BUS_ADDRESSES[bus.id as usize],
@@ -100,7 +112,7 @@ impl Miner {
                     nonce,
                 );
                 match self
-                    .send_and_confirm(&[cu_limit_ix, cu_price_ix, ix_mine], false,false)
+                    .send_and_confirm(&[jito_tips, cu_limit_ix, cu_price_ix, ix_mine], false,false)
                     .await
                 {
                     Ok(sig) => {
@@ -109,7 +121,7 @@ impl Miner {
                         break;
                     }
                     Err(_err) => {
-                        // TODO
+                        println!("Error: {}", _err.to_string());
                     }
                 }
             }
