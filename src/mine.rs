@@ -2,7 +2,7 @@ use std::{
     io::{stdout, Write},
     sync::{atomic::AtomicBool, Arc, Mutex},
     fs::OpenOptions,
-    str::FromStr
+    str::FromStr,
 };
 
 use ore::{self, state::Bus, BUS_ADDRESSES, BUS_COUNT, EPOCH_DURATION};
@@ -26,6 +26,7 @@ use crate::{
 // Odds of being selected to submit a reset tx
 const RESET_ODDS: u64 = 20;
 
+
 impl Miner {
     pub async fn mine(&self, threads: u64) {
         // Register, if needed.
@@ -40,6 +41,19 @@ impl Miner {
             .create(true) 
             .open("output.txt") 
             .expect("Failed to open file in append mode");
+
+        
+        let JitoAddresses = vec![
+            "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",
+            "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
+            "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY",
+            "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49",
+            "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
+            "ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt",
+            "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL",
+            "3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT",
+        ];
+            
         // Start mining loop
         loop {
             // Fetch account state
@@ -99,9 +113,13 @@ impl Miner {
                     ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
                 
                 // jito Tips
+                let mut rng = rand::thread_rng();
+                let random_index = rng.gen_range(0..JitoAddresses.len());
+                let selected_address = JitoAddresses[random_index];
+
                 let jito_tips = transfer(
                         &signer.pubkey(), //DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt
-                        &pubkey::Pubkey::from_str("DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh")
+                        &pubkey::Pubkey::from_str(selected_address)
                             .unwrap(),
                     self.jito_fee,
                 );
