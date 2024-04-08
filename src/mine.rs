@@ -79,22 +79,27 @@ impl Miner {
 
             // Escape sequence that clears the screen and the scrollback buffer
             println!("\nMining for a valid hash...");
-            let (next_hash, nonce) =
-                self.find_next_hash_par(proof.hash.into(), treasury.difficulty.into(), threads);
+            let (next_hash, nonce) = self.find_next_hash_par(proof.hash.into(), treasury.difficulty.into(), threads);
 
             // Submit mine tx.
             // Use busses randomly so on each epoch, transactions don't pile on the same busses
             println!("\n\nSubmitting hash for validation...");
-            let mut need_reset = false;
-            loop {
+            'submit: loop {
+                // Double check we're submitting for the right challenge
+                let proof_ = get_proof(self.cluster.clone(), signer.pubkey()).await;
+                if proof_.hash.ne(&proof.hash) {
+                    println!("Hash already validated! An earlier transaction must have landed.");
+                    break 'submit;
+                }
+
                 // Reset epoch, if needed
                 let treasury = get_treasury(self.cluster.clone()).await;
                 let clock = get_clock_account(self.cluster.clone()).await;
                 let threshold = treasury.last_reset_at.saturating_add(EPOCH_DURATION);
-                if clock.unix_timestamp.ge(&threshold) || need_reset {
+                if clock.unix_timestamp.ge(&threshold) {
                     // There are a lot of miners right now, so randomly select into submitting tx
-                    if rng.gen_range(0..RESET_ODDS).eq(&0) || need_reset{
-                        println!("Sending epoch reset transaction... or Need Reset....0x3");
+                    if rng.gen_range(0..RESET_ODDS).eq(&0) {
+                        println!("Sending epoch reset transaction...");
                         let cu_limit_ix =
                             ComputeBudgetInstruction::set_compute_unit_limit(CU_LIMIT_RESET);
                         let cu_price_ix =
@@ -103,7 +108,6 @@ impl Miner {
                         self.send_and_confirm(&[cu_limit_ix, cu_price_ix, reset_ix], false,true)
                             .await
                             .ok();
-                        need_reset = true;
                     }
                 }
 
@@ -112,8 +116,7 @@ impl Miner {
                 let bus_rewards = (bus.rewards as f64) / (10f64.powf(ore::TOKEN_DECIMALS as f64));
                 println!("Sending on bus {} ({} ORE)", bus.id, bus_rewards);
                 let cu_limit_ix = ComputeBudgetInstruction::set_compute_unit_limit(CU_LIMIT_MINE);
-                let cu_price_ix =
-                    ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
+                let cu_price_ix = ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
                 
                 // jito Tips
                 let mut rng = rand::thread_rng();
@@ -121,7 +124,7 @@ impl Miner {
                 let selected_address = jito_addresses[random_index];
                 
                 let jito_tips = transfer(
-                        &signer.pubkey(), //DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt
+                        &signer.pubkey(),
                         &pubkey::Pubkey::from_str(selected_address)
                             .unwrap(),
                     self.jito_fee,
@@ -152,18 +155,12 @@ impl Miner {
                     Err(_err) => {
                         println!("send_and_confirm Error: {}", _err.to_string());
 
-
-
-
                         if Miner::should_break_loop(&_err.to_string()) {
-                            // need_reset = true;
                             continue 'mining_loop;
                         }
                     }
                 }
             }
-
-
         }
     }
 
