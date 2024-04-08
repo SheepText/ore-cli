@@ -1,6 +1,8 @@
-# Ore CLI
+# Ore CLI 
 
 A command line interface for the Ore program.
+
+fork from [HardhatChad/ore-cli](HardhatChad/ore-cli)
 
 ## Building
 
