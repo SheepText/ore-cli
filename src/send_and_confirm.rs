@@ -19,9 +19,9 @@ use solana_transaction_status::{TransactionConfirmationStatus, UiTransactionEnco
 
 use crate::Miner;
 
-const RPC_RETRIES: usize = 4;
+const RPC_RETRIES: usize = 1;
 const SIMULATION_RETRIES: usize = 4;
-const GATEWAY_RETRIES: usize = 4;
+const GATEWAY_RETRIES: usize = 3;
 const CONFIRM_RETRIES: usize = 2;
 
 impl Miner {
@@ -68,7 +68,7 @@ impl Miner {
             }
         };
         let mut send_cfg = RpcSendTransactionConfig {
-            skip_preflight: true,
+            skip_preflight: false,
             preflight_commitment: Some(CommitmentLevel::Confirmed),
             encoding: Some(UiTransactionEncoding::Base64),
             max_retries: Some(RPC_RETRIES),
@@ -110,8 +110,7 @@ impl Miner {
                             let cu_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(
                                 units_consumed as u32 + 1000,
                             );
-                            let cu_price_ix =
-                                ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
+                            let cu_price_ix = ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
                             let mut final_ixs = vec![];
                             final_ixs.extend_from_slice(&[cu_budget_ix, cu_price_ix]);
                             final_ixs.extend_from_slice(ixs);
@@ -138,8 +137,6 @@ impl Miner {
         let mut sigs = vec![];
         let mut attempts = 0;
         loop {
-            // println!("Attempt: {:?}", attempts);
-            // println!(".");
             match send_client.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
 
@@ -151,7 +148,7 @@ impl Miner {
                         return Ok(sig);
                     }
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(2000));
+                        std::thread::sleep(Duration::from_millis(1000));
                         match query_client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
                                 // println!("Confirms: {:?}", signature_statuses.value);
@@ -179,7 +176,7 @@ impl Miner {
 
                             // Handle confirmation errors
                             Err(err) => {
-                                println!("Error: {:?}", err);
+                                println!("confirmation Error: {:?}", err);
                             }
                         }
                     }
@@ -188,12 +185,19 @@ impl Miner {
 
                 // Handle submit errors
                 Err(err) => {
-                    println!("Error {:?}", err);
+                    if Miner::should_break_loop(&err.to_string()){
+                        return Err(ClientError {
+                            request: None,
+                            kind: ClientErrorKind::Custom("custom program error: 0x3".into()),
+                        });
+                    }
+                    else{
+                        println!("Submit Error {:?}", err);
+                    }
 
-                      // No need to retry here on explicit error. it'll fail again.
                     return Err(ClientError {
                         request: None,
-                        kind: ClientErrorKind::Custom(format!("Failed to send tx: {:?}", err)),
+                        kind: ClientErrorKind::Custom("fail to submit tx".into()),
                     });
                 }
             }
