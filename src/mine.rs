@@ -148,7 +148,7 @@ impl Miner {
                     .await
                 {
                     Ok(sig) => {
-                        println!("Skip confirm Success: {}", sig);
+                        println!("confirm Success: {}", sig);
                         writeln!(file, "{}", sig.to_string()).expect("Failed to write to file");
                         break;
                     }
