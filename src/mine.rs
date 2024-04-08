@@ -84,12 +84,12 @@ impl Miner {
             // Submit mine tx.
             // Use busses randomly so on each epoch, transactions don't pile on the same busses
             println!("\n\nSubmitting hash for validation...");
-            'submit: loop {
+           loop {
                 // Double check we're submitting for the right challenge
                 let proof_ = get_proof(self.cluster.clone(), signer.pubkey()).await;
                 if proof_.hash.ne(&proof.hash) {
                     println!("Hash already validated! An earlier transaction must have landed.");
-                    break 'submit;
+                    continue 'mining_loop;
                 }
 
                 // Reset epoch, if needed
@@ -155,9 +155,9 @@ impl Miner {
                     Err(_err) => {
                         println!("send_and_confirm Error: {}", _err.to_string());
 
-                        if Miner::should_break_loop(&_err.to_string()) {
-                            continue 'mining_loop;
-                        }
+                        // if Miner::should_break_loop(&_err.to_string()) {
+                        //     continue 'mining_loop;
+                        // }
                     }
                 }
             }
