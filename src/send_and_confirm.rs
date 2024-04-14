@@ -148,7 +148,7 @@ impl Miner {
                         return Ok(sig);
                     }
                     for _ in 0..CONFIRM_RETRIES {
-                        std::thread::sleep(Duration::from_millis(1000));
+                        std::thread::sleep(Duration::from_millis(500));
                         match query_client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
                                 // println!("Confirms: {:?}", signature_statuses.value);

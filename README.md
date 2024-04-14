@@ -13,3 +13,15 @@ Once you have Rust installed, you can build the Ore CLI by running the following
 ```sh
 cargo build --release
 ```
+
+## Windows
+
+```
+.\target\release\ore.exe ^
+    --send-rpc <Send RPC URL> ^
+	--rpc <Query RPC URL> ^
+    --keypair <Private Key.json> ^
+    --priority-fee 1 ^
+    mine ^
+    --threads 16
+```
