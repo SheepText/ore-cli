@@ -25,29 +25,11 @@ struct Miner {
     pub priority_fee: u64,
     pub cluster: String,
     pub send_cluster: String,
-    pub jito_fee: u64,
-    pub jito_enable: bool,
 }
 
 #[derive(Parser, Debug)]
 #[command(about, version)]
 struct Args {
-    #[arg(
-        long,
-        value_name = "JitoTips Fee",
-        help = "10000=0.00001SOL",
-        default_value = "10000"
-    )]
-    jito_fee: u64,
-
-    #[arg(
-        long,
-        value_name = "enable JitoTips",
-        help = "enable JitoTips?",
-        default_value = "false"
-    )]
-    jito_enable: bool,
-
     #[arg(
         long,
         value_name = "NETWORK_URL_SEND",
@@ -198,15 +180,12 @@ async fn main() {
         cluster.clone(), 
         args.priority_fee, 
         args.keypair,
-        args.jito_fee,
-        args.jito_enable
     )
     );
     println!("Init Main...");
     println!("Use Send RPC: {}", send_cluster);
     println!("Use Query RPC: {}", cluster);
     println!("Fee: {}", args.priority_fee);
-    println!("JitoTip Fee: {}", args.jito_fee);
 
     // Execute user command.
     match args.command {
@@ -244,14 +223,12 @@ async fn main() {
 }
 
 impl Miner {
-    pub fn new(send_cluster: String, cluster: String, priority_fee: u64, keypair_filepath: Option<String>, jito_fee: u64, jito_enable: bool) -> Self {
+    pub fn new(send_cluster: String, cluster: String, priority_fee: u64, keypair_filepath: Option<String>) -> Self {
         Self {
             keypair_filepath,
             priority_fee,
             cluster,
             send_cluster,
-            jito_fee,
-            jito_enable,
         }
     }
 

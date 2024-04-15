@@ -77,60 +77,60 @@ impl Miner {
         let mut tx = Transaction::new_with_payer(ixs, Some(&signer.pubkey()));
 
         // Simulate if necessary
-        if dynamic_cus {
-            let mut sim_attempts = 0;
-            'simulate: loop {
-                let sim_res = query_client
-                    .simulate_transaction_with_config(
-                        &tx,
-                        RpcSimulateTransactionConfig {
-                            sig_verify: false,
-                            replace_recent_blockhash: true,
-                            commitment: Some(CommitmentConfig::confirmed()),
-                            encoding: Some(UiTransactionEncoding::Base64),
-                            accounts: None,
-                            min_context_slot: None,
-                            inner_instructions: false,
-                        },
-                    )
-                    .await;
-                match sim_res {
-                    Ok(sim_res) => {
-                        if let Some(err) = sim_res.value.err {
-                            println!("Simulaton error: {:?}", err);
-                            sim_attempts += 1;
-                            if sim_attempts.gt(&SIMULATION_RETRIES) {
-                                return Err(ClientError {
-                                    request: None,
-                                    kind: ClientErrorKind::Custom("Simulation failed".into()),
-                                });
-                            }
-                        } else if let Some(units_consumed) = sim_res.value.units_consumed {
-                            println!("Dynamic CUs: {:?}", units_consumed);
-                            let cu_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(
-                                units_consumed as u32 + 1000,
-                            );
-                            let cu_price_ix = ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
-                            let mut final_ixs = vec![];
-                            final_ixs.extend_from_slice(&[cu_budget_ix, cu_price_ix]);
-                            final_ixs.extend_from_slice(ixs);
-                            tx = Transaction::new_with_payer(&final_ixs, Some(&signer.pubkey()));
-                            break 'simulate;
-                        }
-                    }
-                    Err(err) => {
-                        println!("Simulaton error: {:?}", err);
-                        sim_attempts += 1;
-                        if sim_attempts.gt(&SIMULATION_RETRIES) {
-                            return Err(ClientError {
-                                request: None,
-                                kind: ClientErrorKind::Custom("Simulation failed".into()),
-                            });
-                        }
-                    }
-                }
-            }
-        }
+        // if dynamic_cus {
+        //     let mut sim_attempts = 0;
+        //     'simulate: loop {
+        //         let sim_res = query_client
+        //             .simulate_transaction_with_config(
+        //                 &tx,
+        //                 RpcSimulateTransactionConfig {
+        //                     sig_verify: false,
+        //                     replace_recent_blockhash: true,
+        //                     commitment: Some(CommitmentConfig::confirmed()),
+        //                     encoding: Some(UiTransactionEncoding::Base64),
+        //                     accounts: None,
+        //                     min_context_slot: None,
+        //                     inner_instructions: false,
+        //                 },
+        //             )
+        //             .await;
+        //         match sim_res {
+        //             Ok(sim_res) => {
+        //                 if let Some(err) = sim_res.value.err {
+        //                     println!("Simulaton error: {:?}", err);
+        //                     sim_attempts += 1;
+        //                     if sim_attempts.gt(&SIMULATION_RETRIES) {
+        //                         return Err(ClientError {
+        //                             request: None,
+        //                             kind: ClientErrorKind::Custom("Simulation failed".into()),
+        //                         });
+        //                     }
+        //                 } else if let Some(units_consumed) = sim_res.value.units_consumed {
+        //                     println!("Dynamic CUs: {:?}", units_consumed);
+        //                     let cu_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(
+        //                         units_consumed as u32 + 1000,
+        //                     );
+        //                     let cu_price_ix = ComputeBudgetInstruction::set_compute_unit_price(self.priority_fee);
+        //                     let mut final_ixs = vec![];
+        //                     final_ixs.extend_from_slice(&[cu_budget_ix, cu_price_ix]);
+        //                     final_ixs.extend_from_slice(ixs);
+        //                     tx = Transaction::new_with_payer(&final_ixs, Some(&signer.pubkey()));
+        //                     break 'simulate;
+        //                 }
+        //             }
+        //             Err(err) => {
+        //                 println!("Simulaton error: {:?}", err);
+        //                 sim_attempts += 1;
+        //                 if sim_attempts.gt(&SIMULATION_RETRIES) {
+        //                     return Err(ClientError {
+        //                         request: None,
+        //                         kind: ClientErrorKind::Custom("Simulation failed".into()),
+        //                     });
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         // Submit tx
         tx.sign(&[&signer], hash);

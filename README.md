@@ -14,6 +14,12 @@ Once you have Rust installed, you can build the Ore CLI by running the following
 cargo build --release
 ```
 
+## GPU
+
+nvcc windows.cu -o windows
+
+cargo build --release
+
 ## Windows
 
 ```
